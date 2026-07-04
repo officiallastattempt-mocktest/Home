@@ -1,1 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Last Attempt</title>
+<style>
+  :root{
+    --bg: #0b0d12;
+    --bg-soft: #12151c;
+    --card: #161a22;
+    --card-border: #23283344;
+    --ink: #eef1f7;
+    --ink-dim: #9aa3b5;
+    --indigo: #5b6cff;
+    --emerald: #35d399;
+    --rose: #ff5c7a;
+    --amber: #ffb648;
+    --ring: rgba(91,108,255,0.35);
+  }
 
+  *{ box-sizing: border-box; }
+  html, body{
+    margin:0; padding:0;
+    background: radial-gradient(1200px 600px at 15% -10%, #1a2036 0%, transparent 60%),
+                radial-gradient(1000px 500px at 100% 0%, #14231f 0%, transparent 55%),
+                var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 20px 24px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+  .brand .dot{
+    width: 10px; height:10px;
+    border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 12px var(--emerald);
+    animation: pulse-dot 2.2s ease-in-out infinite;
+  }
+  .brand-name{
+    background: linear-gradient(90deg, #fff, #b9c2ff 60%, var(--indigo));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .brand-name .last{ font-weight: 800; }
+  .brand-name .attempt{ font-weight: 300; opacity: 0.85; margin-left: 4px;}
+
+  @keyframes pulse-dot{
+    0%, 100%{ transform: scale(1); opacity: 1;}
+    50%{ transform: scale(1.4); opacity: 0.6;}
+  }
+
+  .app-download{
+    display:flex; align-items:center; gap:8px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    padding: 8px 14px 8px 10px;
+    border-radius: 999px;
+    color: var(--ink);
+    text-decoration:none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .app-download:hover{
+    transform: translateY(-2px);
+    border-color: var(--indigo);
+    box-shadow: 0 6px 20px var(--ring);
+  }
+  .app-download svg{
+    width: 18px; height:18px;
+    animation: bob 2.6s ease-in-out infinite;
+  }
+  @keyframes bob{
+    0%, 100%{ transform: translateY(0); }
+    50%{ transform: translateY(-3px); }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    text-align:center;
+    padding: 36px 20px 10px;
+  }
+  .eyebrow{
+    display:inline-block;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--emerald);
+    background: rgba(53, 211, 153, 0.08);
+    border: 1px solid rgba(53, 211, 153, 0.25);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  .hero h1{
+    font-size: clamp(1.7rem, 5vw, 2.6rem);
+    line-height: 1.15;
+    margin: 0 0 12px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 span{
+    color: var(--indigo);
+  }
+  .hero p{
+    color: var(--ink-dim);
+    max-width: 520px;
+    margin: 0 auto;
+    font-size: 0.98rem;
+  }
+
+  /* ---------- Card grid ---------- */
+  .cards{
+    max-width: 1000px;
+    margin: 40px auto 60px;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+  }
+
+  .card{
+    position: relative;
+    background: linear-gradient(160deg, var(--card), var(--bg-soft));
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 28px 24px;
+    text-decoration: none;
+    color: var(--ink);
+    display: block;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.35s cubic-bezier(.2,.8,.2,1), border-color 0.35s ease, box-shadow 0.35s ease;
+  }
+
+  .card::before{
+    content:"";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(280px 140px at var(--mx, 50%) var(--my, 0%), var(--ring), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+  }
+  .card:hover::before{ opacity: 1; }
+
+  .card:hover{
+    transform: translateY(-6px);
+    border-color: var(--indigo);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 0 0 1px var(--ring);
+  }
+
+  .card:focus-visible{
+    outline: 2px solid var(--indigo);
+    outline-offset: 3px;
+  }
+
+  .card .icon-wrap{
+    width: 62px; height: 62px;
+    border-radius: 16px;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, rgba(91,108,255,0.18), rgba(53,211,153,0.12));
+    border: 1px solid rgba(91,108,255,0.25);
+    margin-bottom: 18px;
+  }
+
+  /* Speed-brain icon animation: gear spins, bolt flashes */
+  .speed-icon{
+    width: 34px; height: 34px;
+    position: relative;
+  }
+  .speed-icon .gear{
+    transform-origin: 50% 50%;
+    animation: spin-gear 6s linear infinite;
+  }
+  .card:hover .speed-icon .gear{
+    animation-duration: 1.4s;
+  }
+  .speed-icon .bolt{
+    animation: flash-bolt 1.8s ease-in-out infinite;
+  }
+  @keyframes spin-gear{
+    from{ transform: rotate(0deg); }
+    to{ transform: rotate(360deg); }
+  }
+  @keyframes flash-bolt{
+    0%, 100%{ opacity: 1; filter: drop-shadow(0 0 0px var(--amber)); }
+    50%{ opacity: 0.55; filter: drop-shadow(0 0 6px var(--amber)); }
+  }
+
+  .card h3{
+    margin: 0 0 8px;
+    font-size: 1.18rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .card p{
+    margin: 0 0 16px;
+    color: var(--ink-dim);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .card .cta{
+    display:inline-flex;
+    align-items:center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--indigo);
+  }
+  .card .cta svg{
+    width: 14px; height:14px;
+    transition: transform 0.3s ease;
+  }
+  .card:hover .cta svg{
+    transform: translateX(4px);
+  }
+
+  .card.accent-emerald .icon-wrap{
+    background: linear-gradient(135deg, rgba(53,211,153,0.2), rgba(91,108,255,0.1));
+    border-color: rgba(53,211,153,0.3);
+  }
+  .card.accent-emerald .cta{ color: var(--emerald); }
+
+  .card.accent-rose .icon-wrap{
+    background: linear-gradient(135deg, rgba(255,92,122,0.2), rgba(91,108,255,0.1));
+    border-color: rgba(255,92,122,0.3);
+  }
+  .card.accent-rose .cta{ color: var(--rose); }
+
+  /* ---------- Floating chat icon ---------- */
+  .chat-fab{
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--indigo), #7b5bff);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 10px 30px rgba(91,108,255,0.45);
+    cursor: pointer;
+    z-index: 50;
+    border: none;
+    animation: float-fab 3.2s ease-in-out infinite;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .chat-fab:hover{
+    transform: scale(1.08);
+    box-shadow: 0 14px 36px rgba(91,108,255,0.6);
+  }
+  .chat-fab svg{
+    width: 26px; height: 26px;
+  }
+  .chat-fab .ping{
+    position: absolute;
+    top: -3px; right: -3px;
+    width: 14px; height: 14px;
+    background: var(--rose);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes float-fab{
+    0%, 100%{ transform: translateY(0); }
+    50%{ transform: translateY(-8px); }
+  }
+
+  footer{
+    text-align:center;
+    padding: 30px 20px 100px;
+    color: var(--ink-dim);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 480px){
+    .topbar{ padding: 16px; }
+    .brand-name .attempt{ display:inline; }
+    .app-download span{ display:none; }
+    .app-download{ padding: 10px; }
+    .cards{ margin-top: 28px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="brand-name"><span class="last">Last Attempt</span><span class="attempt">Attempt</span></span>
+    </div>
+
+    <a href="https://lastattempts.blogspot.com/" class="app-download" aria-label="Download the app">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"></path>
+        <path d="M7 10l5 5 5-5"></path>
+        <path d="M5 21h14"></path>
+      </svg>
+      <span>Get App</span>
+    </a>
+  </div>
+
+  <section class="hero">
+    
+    <h1>Give Your<span> Last Attempt</span> With Us.</h1>
+    <p>Practice tests, topic drills, and live marathon quizzes built for Banking ,SSC, Railway aspirants who don't have time to waste.</p>
+  </section>
+
+  <div class="cards">
+
+    <a class="card" href="speed-math.html" data-card>
+      <div class="icon-wrap">
+        <svg class="speed-icon" viewBox="0 0 48 48" fill="none">
+          <g class="gear" stroke="var(--indigo)" stroke-width="2.2">
+            <circle cx="24" cy="24" r="8" fill="none"/>
+            <path d="M24 4v6M24 38v6M44 24h-6M10 24H4M37.6 10.4l-4.2 4.2M14.6 33.4l-4.2 4.2M37.6 37.6l-4.2-4.2M14.6 14.6l-4.2-4.2" stroke-linecap="round"/>
+          </g>
+          <path class="bolt" d="M25 17l-7 10h5l-2 8 8-11h-5z" fill="var(--amber)"/>
+        </svg>
+      </div>
+      <h3>Improve Speed in Math</h3>
+      <p>Sharpen mental calculation with drills built to cut your per-question time — the edge that decides Tier-1 rankers.</p>
+      <span class="cta">Start training
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </span>
+    </a>
+
+
+
+   
+
+  </div>
+
+ 
+
+  <button class="chat-fab" aria-label="Open chat" id="chatFab">
+    <span class="ping"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>
+  </button>
+
+  <script>
+    // Cursor-follow glow on cards (desktop + touch-safe)
+    document.querySelectorAll('[data-card]').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        card.style.setProperty('--mx', x + '%');
+        card.style.setProperty('--my', y + '%');
+      });
+    });
+
+    // Chat FAB click -> placeholder action (swap with real chat link/widget)
+    document.getElementById('chatFab').addEventListener('click', () => {
+      window.location.href = 'chat.html';
+    });
+  </script>
+
+</body>
+</html>
