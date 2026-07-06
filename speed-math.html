@@ -1148,7 +1148,7 @@ function createQuestion(question,answer,explanation){
     let options=[answer];
 
     while(options.length<4){
-        let fake=answer+random(-15,15);
+        let fake=answer+[-20,-10,10,20,30,40,50][random(0,6)];
         if(fake!==answer && !options.includes(fake)){
             options.push(fake);
         }
