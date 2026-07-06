@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Speed Calculation Quiz</title>
+
+<style>
+
+/* -------- Finger Notepad -------- */
+
+.notepad-container{
+    margin-top:2px;
+    background:white;
+    padding:12px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+#drawCanvas{
+    width:100%;
+    height:250px;
+    background:#e1e3e5;
+    border-radius:10px;
+    touch-action:none;
+}
+
+.clear-btn{
+    margin-top:10px;
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    background:#2196F2;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+    
+sup{
+    font-size: 12px;
+    vertical-align: super;
+    position: relative;
+    top: -6px;
+}    
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6fa;
+    margin:0;
+}
+
+    
+.container{
+    max-width:500px;
+    margin:auto;
+    padding:15px;
+}
+.scoreboard{
+    display:flex;
+    justify-content:space-between;
+    background:#2196F2;
+    color:white;
+    padding:12px;
+    border-radius:8px;
+    margin-bottom:10px;
+    font-weight:bold;
+}
+.timer{
+    text-align:center;
+    font-weight:bold;
+    margin-bottom:10px;
+    color:#f44336;
+}
+.question-box{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    text-align:center;
+}
+.question-card{
+    min-height:100px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    font-weight:bold;
+    background:#e3f2fd;
+    border-radius:10px;
+    margin-bottom:15px;
+}
+.option{
+    width:100%;
+    padding:14px;
+    margin:8px 0;
+    border-radius:8px;
+    border:none;
+    background:#f1f8ff;
+    font-size:18px;
+    cursor:pointer;
+}
+.correct{ background:#4CAF50 !important; color:white; }
+.wrong{ background:#f44336 !important; color:white; }
+
+.buttons{
+    margin-top:15px;
+    display:flex;
+    justify-content:space-between;
+}
+button.nav{
+    padding:10px 20px;
+    border:none;
+    border-radius:6px;
+    background:#2196F2;
+    color:white;
+    cursor:pointer;
+}
+.explanation{
+    margin-top:15px;
+    background:#f9fbe7;
+    padding:12px;
+    border-radius:8px;
+    text-align:left;
+    display:none;
+    white-space:pre-line;
+    font-weight:bold;
+}
+.q-number{
+    margin-bottom:8px;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="scoreboard">
+        <div>Correct: <span id="correct">0</span></div>
+        <div>Wrong: <span id="wrong">0</span></div>
+    </div>
+
+    <div class="timer">
+        Time Left: <span id="time">20</span> sec
+    </div>
+
+    <div class="question-box">
+        <div class="q-number" id="qNumber"></div>
+        <div class="question-card" id="question"></div>
+        <div id="options"></div>
+        <div class="explanation" id="explanation"></div>
+
+        <div class="buttons">
+            <button class="nav" onclick="previousQuestion()">Previous</button>
+            <button class="nav" onclick="nextQuestion()">Next</button>
+        </div>
+    </div>
+
+    
+</div>
+
+
+
+<div class="notepad-container">
+    <canvas id="drawCanvas"></canvas>
+    <button class="clear-btn" onclick="clearCanvas()">Reset</button>
+</div>
+
+
+
+    
+<script>
+
+let correctCount=0;
+let wrongCount=0;
+let usedCases=[];
+let history=[];
+let currentIndex=-1;
+
+let timerInterval;
+let timeLeft=20;
+const QUESTION_TIME=20;
+
+function random(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+function factorial(n){
+    let r=1;
+    for(let i=2;i<=n;i++) r*=i;
+    return r;
+}
+
+/* -------- Superscript converter -------- */
+function formatSuperscript(text){
+    return text.replace(/\^(\d+)/g,"<sup>$1</sup>");
+}
+
+/* -------- Timer -------- */
+function startTimer(){
+    clearInterval(timerInterval);
+    timeLeft=QUESTION_TIME;
+    document.getElementById("time").innerText=timeLeft;
+
+    timerInterval=setInterval(()=>{
+        timeLeft--;
+        document.getElementById("time").innerText=timeLeft;
+
+        if(timeLeft<=0){
+            clearInterval(timerInterval);
+            autoWrong();
+        }
+    },1000);
+}
+
+function autoWrong(){
+    if(!history[currentIndex].answered){
+        wrongCount++;
+        document.getElementById("wrong").innerText=wrongCount;
+        showCorrectAnswer();
+document.getElementById("explanation").innerHTML=
+    formatSuperscript(history[currentIndex].explanation) + "<br><br>(Time Over)";
+        document.getElementById("explanation").style.display="block";
+        history[currentIndex].answered=true;
+        disableOptions();
+    }
+}
+
+/* -------- CASES -------- */
+
+const cases=[
+
+function(){
+    let a=random(2,9);
+    let b=random(11,20);
+    let ans=a*a + b*b;
+
+    return createQuestion(
+        `${a}^2 + ${b}^2 = ?`,
+        ans,
+`Q: ${a}^2 + ${b}^2
+= ${a*a} + ${b*b}
+= ${ans}`);
+},
+
+function(){
+    let a=random(100,300);
+    let b=random(200,500);
+    let c=random(400,900);
+    let ans=a+b+c;
+
+    return createQuestion(
+        `${a} + ${b} + ${c} = ?`,
+        ans,
+`Q: ${a} + ${b} + ${c}
+= ${a+b} + ${c}
+= ${ans}`);
+},
+
+
+function(){
+    let a=random(100,300);
+    let b=random(200,500);
+    let c=random(600,1000);
+    let ans=c-b-a;
+
+    return createQuestion(
+        `${c} - ${b} - ${a} = ?`,
+        ans,
+`Q: ${c} - ${b} - ${a}
+= ${c-b} - ${a}
+= ${ans}`);
+},
+
+function(){
+    let a=[40,50,60,70,80,90][random(0,4)];
+    let b=[1000,1200,1300,1400,1500,1600,1700,1800,1900,2000][random(0,9)];
+    let ans=Math.round((a/100)*b*10)/10;
+
+    return createQuestion(
+        `${a}% of ${b} = ?`,
+        ans,
+`Q: ${a}% of ${b}
+= (${a}/100) * ${b}
+= ${ans}`);
+},
+
+
+function(){
+    let a=random(20,30,40,50,60,70,80);
+    let b=random(2,9);
+    let c=random(2,9);
+    let ans=a + b*c;
+
+    return createQuestion(
+        `${a} + ${b} × ${c} = ?`,
+        ans,
+`Q: ${a} + ${b} × ${c}
+= ${a} + ${b*c}
+= ${ans}`);
+},
+    
+function(){
+    let a = random(1,9) * 10;   // 10–90
+    let b = random(1,9) * 100;  // 100–900
+    let c = random(1,9) * 10;   // 10–90
+    let d = random(1,9) * 100;  // 100–900
+
+    let part1 = (a/100) * b;
+    let part2 = (c/100) * d;
+    let ans = part1 + part2;
+
+    return createQuestion(
+        `${a}% of ${b} + ${c}% of ${d} = ?`,
+        ans,
+`Q: ${a}% of ${b} + ${c}% of ${d}
+= ${part1} + ${part2}
+= ${ans}`);
+},
+    
+function(){
+    let a = random(2,9);
+    let b = random(2,9);
+
+    let part1 = a*a*a;
+    let part2 = b*b*b;
+    let ans = part1 + part2;
+
+    return createQuestion(
+        `${a}<sup>3</sup> + ${b}<sup>3</sup> = ?`,
+        ans,
+`Q: ${a}<sup>3</sup> + ${b}<sup>3</sup>
+= ${part1} + ${part2}
+= ${ans}`);
+},
+function(){
+    let aValues = [400,441,484,529,576,625,676,729,784,841,900];
+    let bValues = [961,1024,1089,1156,1225,1296,1369,1444,1521,1600,1681,1764,1849,1936,2025];
+
+    let a = aValues[random(0, aValues.length-1)];
+    let b = bValues[random(0, bValues.length-1)];
+
+    let rootA = Math.sqrt(a);
+    let rootB = Math.sqrt(b);
+
+    let ans = rootA + rootB;
+
+    return createQuestion(
+        `√${a} + √${b} = ?`,
+        ans,
+`Q: √${a} + √${b}
+= ${rootA} + ${rootB}
+= ${ans}`);
+},
+function(){
+    let a = random(3,9);
+    let b = random(1,6);
+
+    // Ensure a ≥ b
+    while(b > a){
+        b = random(1,6);
+    }
+
+    let ans = factorial(a) / factorial(b);
+
+    // Build cancellation expansion manually
+    let expansion = "";
+    for(let i=a; i>b; i--){
+        expansion += i + (i > b+1 ? "×" : "");
+    }
+
+    return createQuestion(
+        `${a}! / ${b}! = ?`,
+        ans,
+`Q: ${a}! / ${b}!
+= (${a}×${a-1}×...×1)/(${b}×${b-1}×...×1)
+= ${expansion}
+= ${ans}`);
+},
+function(){
+    let values = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30];
+
+    let a1 = values[random(0, values.length-1)];
+    let a2 = values[random(0, values.length-1)];
+
+    // Ensure both numbers are not same
+    while(a2 === a1){
+        a2 = values[random(0, values.length-1)];
+    }
+
+    let part1 = a1 / 2;
+    let part2 = a2 / 2;
+    let ans = part1 + part2;
+
+    return createQuestion(
+        `${a1}/2 + ${a2}/2 = ?`,
+        ans,
+`Q: ${a1}/2 + ${a2}/2
+= ${part1} + ${part2}
+= ${ans}`);
+},
+function(){
+    let a = random(500,900);
+    let b = random(100,400);
+    let c = random(10,90);
+
+    let step1 = a - b;
+    let ans = step1 - c;
+
+    return createQuestion(
+        `${a} - ${b} - ${c} = ?`,
+        ans,
+`Q: ${a} - ${b} - ${c}
+= ${step1} - ${c}
+= ${ans}`);
+},
+function(){
+    let a = random(2,9) * 10;   // 20–90
+    let b = random(2,7);        // 2–7
+    let c = 11;
+
+    let step1 = a * b;
+    let ans = step1 * c;
+
+    return createQuestion(
+        `${a} × ${b} × ${c} = ?`,
+        ans,
+`Q: ${a} × ${b} × ${c}
+= ${step1} × ${c}
+= ${ans}`);
+},
+function(){
+    let values = [45,55,65,75,85,95];
+    let a = values[random(0, values.length-1)];
+
+    let ans = a * a;
+
+    return createQuestion(
+        `${a}<sup>2</sup> = ?`,
+        ans,
+`Q: ${a}<sup>2</sup>
+= ${a} × ${a}
+= ${ans}`);
+},
+function(){
+    let a = random(1,9) * 10;     // 10–90
+    let b = random(1,9) * 10;     // 10–90
+    let c = random(2,9) * 100;    // 200–900
+
+    let numerator = a * b * c;
+    let denominator = 100 * 100;
+    let ans = numerator / denominator;
+
+    return createQuestion(
+        `${a}% of ${b}% of ${c} = ?`,
+        ans,
+`Q: ${a}% of ${b}% of ${c}
+= (${a}/100) × (${b}/100) × ${c}
+= (${a}×${b}×${c}) / (100×100)
+= ${numerator} / ${denominator}
+= ${ans}`);
+},
+function(){
+    let a = [6,12,18,24,30,36,42,48,54,60][random(0,9)];
+    let b = [2,3,6][random(0,2)];
+    let c = random(20,70); 
+
+    let numerator = a * c;
+    let ans = numerator / b;
+
+    return createQuestion(
+        `${a}/${b} = ?/${c}`,
+        ans,
+`Q: ${a}/${b} = ?/${c}
+⇒ ? × ${b} = ${a} × ${c}
+⇒ ? × ${b} = ${numerator}
+⇒ ? = ${numerator} / ${b}
+⇒ ? = ${ans}`);
+},
+function(){
+    let a = [500,600,700,800,900,1000,1100,1200,1300,1400,1500][random(0,10)];
+    let b = [10,20,30,40,50,60,70][random(0,6)];
+    let c = [2,3,4,5,6,7,8,9][random(0,7)];
+
+    let numerator = a * b * c;
+    let ans = numerator / 100;
+
+    return createQuestion(
+        `If principal of ${a}₹ having ${b}% rate of interest in ${c} years, Find interest?`,
+        ans,
+`Q: If principal of ${a}₹ having ${b}% rate of interest in ${c} years, Find interest?
+⇒ I = (P×T×R) / 100
+⇒ I = (${a}×${b}×${c}) / 100
+⇒ I = ${numerator} / 100
+⇒ I = ${ans}`);
+},
+function(){
+    let a = random(2,9);
+    let b = random(5,9);
+    let c = random(1,5);
+
+    let bSquare = b * b;
+    let cCube = c * c * c;
+    let ans = a + bSquare + cCube;
+
+    return createQuestion(
+        `${a} + ${b}² + ${c}³ = ?`,
+        ans,
+`Q: ${a} + ${b}² + ${c}³
+= ${a} + ${bSquare} + ${cCube}
+= ${ans}`);
+},
+function(){
+    let a=random(11,20);
+    let b=random(2,9);
+    let ans=a*a - b*b;
+
+    return createQuestion(
+        `${a}^2 - ${b}^2 = ?`,
+        ans,
+`Q: ${a}^2 - ${b}^2
+= ${a*a} - ${b*b}
+= ${ans}`);
+},
+function(){
+    let a = random(35,50);
+    let b = random(10,40);
+
+    let aSquare = a * a;
+    let ans = aSquare + b;
+
+    return createQuestion(
+        `${a}² + ${b} = ?`,
+        ans,
+`Q: ${a}² + ${b}
+= ${aSquare} + ${b}
+= ${ans}`);
+},
+function(){
+    let a = random(25,35);
+    let b = [80,90,100,110,120,130,140,150][random(0,7)];
+
+    let aSquare = a * a;
+    let ans = aSquare - b;
+
+    return createQuestion(
+        `${a}² - ${b} = ?`,
+        ans,
+`Q: ${a}² - ${b}
+= ${aSquare} - ${b}
+= ${ans}`);
+},
+function(){
+    let a1 = [1,2,4,6,8][random(0,4)];
+    let a2 = random(1,9);
+    let a3 = random(1,9);
+    let b = [100,200,300,400,600,700,800,900][random(0,7)];
+    let b2 = [100,200,300,400,600,700,800,900][random(0,7)];
+    let c = [150,250,350,450][random(0,3)];
+
+    let part1 = a1 * c;
+    let part2 = a2 * b;
+    let part3 = a3 * b2;  // if you REALLY want repeated term
+
+    let ans = part1 + part2 + part3;
+
+    return createQuestion(
+        `${a1}×${c} + ${a2}×${b} + ${a3}×${b2} = ?`,
+        ans,
+`Q: ${a1}×${c} + ${a2}×${b} + ${a3}×${b2}
+= ${part1} + ${part2} + ${part3}
+= ${ans}`);
+},
+function(){
+    let a = random(3000,5000);
+    let b = random(1000,3000);
+
+    // Ensure a is greater than b (optional safety)
+    if(b > a){
+        let temp = a;
+        a = b;
+        b = temp;
+    }
+
+    let ans = a - b;
+
+    return createQuestion(
+        `${a} - ${b} = ?`,
+        ans,
+`${a} - ${b}
+= ${ans}`);
+},
+function(){
+    let a = [10,15,20,25,30,35,40,45,50,55,60,65,70,75][random(0,13)];
+    let b = [10,20,30,40,50,60,70,80,90][random(0,8)];
+    let c = [100,200,300,400,500,600,700,800,900,1000][random(0,9)];
+
+    let percentValue = (b * c) / 100;
+    let ans = a + percentValue;
+
+    return createQuestion(
+        `${a} + ${b}% of ${c} = ?`,
+        ans,
+`Q: ${a} + ${b}% of ${c}
+= ${a} + (${b}×${c})/100
+= ${a} + ${percentValue}
+= ${ans}`);
+},
+function(){
+    let a = [10,15,20,25,30,35,40,45,50,55,60,65,70,75][random(0,13)];
+    let b = [10,20,30,40,50,60,70,80,90][random(0,8)];
+    let c = [900,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000][random(0,10)];
+
+    let percentValue = (b * c) / 100;
+    let ans = percentValue - a;
+
+    return createQuestion(
+        `${b}% of ${c} - ${a} = ?`,
+        ans,
+`Q: ${b}% of ${c} - ${a}
+= (${b}×${c})/100 - ${a}
+= ${percentValue} - ${a}
+= ${ans}`);
+},
+function(){
+    let a = random(1,9);
+    let b = random(5,15);
+
+    let aCube = a * a * a;
+    let bSquare = b * b;
+    let ans = aCube + bSquare;
+
+    return createQuestion(
+        `${a}³ + ${b}² = ?`,
+        ans,
+`Q: ${a}³ + ${b}²
+= ${aCube} + ${bSquare}
+= ${ans}`);
+},
+function(){
+    let aValues = [1331,1728,2197,2744,3375,4096,4913,5832,6859];
+    let bValues = [1,8,27,64,125,216,343,512,729,1000];
+
+    let a = aValues[random(0, aValues.length - 1)];
+    let b = bValues[random(0, bValues.length - 1)];
+
+    let cubeRootA = Math.round(Math.cbrt(a));
+    let cubeRootB = Math.round(Math.cbrt(b));
+    let ans = cubeRootA + cubeRootB;
+
+    return createQuestion(
+        `∛${a} + ∛${b} = ?`,
+        ans,
+`Q: ∛${a} + ∛${b}
+= ${cubeRootA} + ${cubeRootB}
+= ${ans}`);
+},
+function(){
+    let a = random(7,100);
+
+    let ans = a * a;
+
+    return createQuestion(
+        `Sum of first ${a} odd numbers = ?`,
+        ans,
+`Q: Sum of first ${a} odd numbers
+= n²
+= ${a}²
+= ${ans}`);
+},
+function(){
+    let a = random(7,100);
+
+    let ans = a * (a + 1);
+
+    return createQuestion(
+        `Sum of first ${a} even numbers = ?`,
+        ans,
+`Q: Sum of first ${a} even numbers
+= n(n + 1)
+= ${a} × (${a} + 1)
+= ${a} × ${a + 1}
+= ${ans}`);
+},
+function(){
+    let a = random(10,30);
+
+    let numerator = a * (a + 1);
+    let ans = numerator / 2;
+
+    return createQuestion(
+        `Sum of first ${a} natural numbers = ?`,
+        ans,
+`Q: Sum of first ${a} natural numbers
+= n(n + 1) / 2
+= ${a} × (${a} + 1) / 2
+= ${numerator} / 2
+= ${ans}`);
+},
+function(){
+    let a = random(1,5);
+    let b = random(6,10);
+    let c = random(11,15);
+
+    let step1 = a * b;
+    let ans = step1 * c;
+
+    return createQuestion(
+        `${a}×${b}×${c} = ?`,
+        ans,
+`Q: ${a}×${b}×${c}
+= ${step1} × ${c}
+= ${ans}`);
+},
+function(){
+    let a = random(20,50);
+    let b = random(20,50);
+    let c = [5,10,20][random(0,2)];
+
+    let sum = a + b;
+    let ans = c * sum;
+
+    return createQuestion(
+        `${a}×${c} + ${b}×${c} = ?`,
+        ans,
+`Q: ${a}×${c} + ${b}×${c}
+= ${c}(${a} + ${b})
+= ${c} × ${sum}
+= ${ans}`);
+},
+function(){
+    let a = random(1,5);
+    let b = random(1,5);
+
+    function factorial(n){
+        let result = 1;
+        for(let i = 1; i <= n; i++){
+            result *= i;
+        }
+        return result;
+    }
+
+    let factA = factorial(a);
+    let factB = factorial(b);
+    let ans = factA + factB;
+
+    // Build expansion strings
+    function expansion(n){
+        if(n === 0 || n === 1) return "1";
+        let str = "";
+        for(let i = n; i >= 1; i--){
+            str += i + (i > 1 ? "×" : "");
+        }
+        return str;
+    }
+
+    return createQuestion(
+        `${a}! + ${b}! = ?`,
+        ans,
+`Q: ${a}! + ${b}!
+= ${expansion(a)} + ${expansion(b)}
+= ${factA} + ${factB}
+= ${ans}`);
+},
+function(){
+    let a = random(1,5);
+    let b = random(12,20);
+
+    function factorial(n){
+        let result = 1;
+        for(let i = 1; i <= n; i++){
+            result *= i;
+        }
+        return result;
+    }
+
+    let bSquare = b * b;
+    let factA = factorial(a);
+    let ans = bSquare - factA;
+
+    function expansion(n){
+        if(n === 0 || n === 1) return "1";
+        let str = "";
+        for(let i = n; i >= 1; i--){
+            str += i + (i > 1 ? "×" : "");
+        }
+        return str;
+    }
+
+    return createQuestion(
+        `${b}² - ${a}! = ?`,
+        ans,
+`Q: ${b}² - ${a}!
+= ${bSquare} - ${expansion(a)}
+= ${bSquare} - ${factA}
+= ${ans}`);
+},
+function(){
+    let values = [1,3,5,7,9,11,13,15,17,19];
+
+    let a = values[random(0,9)];
+    let b = values[random(0,9)];
+    let c = values[random(0,9)];
+    let d = values[random(0,9)];
+
+    let sum = a + b + c + d;
+    let ans = sum / 2;
+
+    return createQuestion(
+        `(${a} + ${b} + ${c} + ${d}) / 2 = ?`,
+        ans,
+`Q: (${a} + ${b} + ${c} + ${d}) / 2
+= ${sum} / 2
+= ${ans}`);
+},
+function(){
+    let a = random(1,6);
+
+    let n1 = a;
+    let n2 = a * 11;          // aa
+    let n3 = a * 111;         // aaa
+    let n4 = a * 1111;        // aaaa
+    let n5 = a * 11111;       // aaaaa
+
+    let ans = n1 + n2 + n3 + n4 + n5;
+
+    return createQuestion(
+        `${a} + ${a}${a} + ${a}${a}${a} + ${a}${a}${a}${a} + ${a}${a}${a}${a}${a} = ?`,
+        ans,
+`Q: ${a} + ${a}${a} + ${a}${a}${a} + ${a}${a}${a}${a} + ${a}${a}${a}${a}${a}
+= ${n1} + ${n2} + ${n3} + ${n4} + ${n5}
+= ${ans}`);
+},
+function(){
+    let aValues = [121,132,143,154,165,176,187,198,209,220];
+    let bValues = [11,22,33,44,55,66,77,88,99];
+
+    let a = aValues[random(0, aValues.length-1)];
+    let b = bValues[random(0, bValues.length-1)];
+
+    let factorA = a / 11;
+    let factorB = b / 11;
+
+    let sumInside = factorA + factorB;
+    let ans = 11 * sumInside;
+
+    return createQuestion(
+        `${a} + ${b} = ?`,
+        ans,
+`Q: ${a} + ${b}
+= 11×${factorA} + 11×${factorB}
+= 11(${factorA} + ${factorB})
+= 11×${sumInside}
+= ${ans}`);
+},
+function(){
+    let a = [100,200,400,800][random(0,3)];
+    let b = [20,40,80,100][random(0,3)];
+
+    let simplifiedA = a / 100;
+    let ans = b / simplifiedA;
+
+    return createQuestion(
+        `?% of ${a} = ${b}`,
+        ans,
+`Q: ?% of ${a} = ${b}
+⇒ (? × ${a}) / 100 = ${b}
+⇒ ? × ${simplifiedA} = ${b}
+⇒ ? = ${b} / ${simplifiedA}
+⇒ ? = ${ans}`);
+},
+function(){
+    let aValues = [100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000];
+    let bValues = [10,20,30,40,50,60,70,80,90];
+
+    let a = aValues[random(0, aValues.length-1)];
+    let b = bValues[random(0, bValues.length-1)];
+
+    let increase = (a * b) / 100;
+    let ans = a + increase;
+
+    return createQuestion(
+        `A number is ${a}, if ${b}% got increased then the new number is :`,
+        ans,
+`Q: A number is ${a}, if ${b}% got increased then the new number is :
+= ${b}% of ${a}
+= (${b}×${a})/100
+= ${increase}
+
+New number = ${a} + ${increase}
+= ${ans}`);
+},
+function(){
+
+    function randomOdd(min, max){
+        let num;
+        do{
+            num = random(min, max);
+        }while(num % 2 === 0);
+        return num;
+    }
+
+    function randomEven(min, max){
+        let num;
+        do{
+            num = random(min, max);
+        }while(num % 2 !== 0);
+        return num;
+    }
+
+    let a = randomOdd(30,60);
+    let b = randomOdd(30,60);
+    let c = randomEven(40,80);
+    let d = randomEven(40,80);
+
+    let sum = a + b + c + d;
+    let ans = sum / 2;
+
+    return createQuestion(
+        `(${a} + ${b} + ${c} + ${d}) / 2 = ?`,
+        ans,
+`Q: (${a} + ${b} + ${c} + ${d}) / 2
+= ${sum} / 2
+= ${ans}`);
+},
+function(){
+    let values = [36,54,72,90,108,126,144,162,180,198,216,234,252,270,288,306,324,342,360];
+    let a = values[random(0, values.length-1)];
+
+    let numerator = a * 5;
+    let ans = numerator / 18;
+
+    return createQuestion(
+        `Convert ${a} km/h = ____ m/s`,
+        ans,
+`Q: Convert ${a} km/h = ____ m/s
+= ${a} × (5/18)
+= ${a} × 5 / 18
+= ${numerator} / 18
+= ${ans}`);
+},
+function(){
+    let values = [15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95];
+    let a = values[random(0, values.length-1)];
+
+    let numerator = a * 18;
+    let ans = numerator / 5;
+
+    return createQuestion(
+        `Convert ${a} m/s = ____ km/h`,
+        ans,
+`Q: Convert ${a} m/s = ____ km/h
+= ${a} × (18/5)
+= ${a} × 18 / 5
+= ${numerator} / 5
+= ${ans}`);
+},
+function(){
+    let aValues = [100,200,300,400,500,600,700,800,900,1000];
+    let bValues = [1,2,4];
+    let cValues = [2.5,3.5,4.5,5.5,6.5,7.5];
+    let dValues = ["car","train","bus","truck","bike","scooty"];
+
+    let a = aValues[random(0, aValues.length-1)];
+    let b = bValues[random(0, bValues.length-1)];
+    let c = cValues[random(0, cValues.length-1)];
+    let d = dValues[random(0, dValues.length-1)];
+
+    let speed = a / b;
+    let ans = speed * c;
+
+    return createQuestion(
+        `A ${d} can cover distance of ${a} km in ${b} hour, find how much distance it will cover in ${c} hour?`,
+        ans,
+`Q: A ${d} can cover distance of ${a} km in ${b} hour, find how much distance it will cover in ${c} hour?
+⇒ ${b} hour = ${a} km
+⇒ 1 hour = ${a}/${b} = ${speed} km
+
+So,
+⇒ ${c} hour = ${speed} × ${c}
+⇒ ${c} hour = ${ans} km`);
+},
+function(){
+    let aValues = [7,14,28,42,56];
+    let bValues = [21,35,49,63,77];
+    let cValues = [40,80,120,160,200];
+    let dValues = ["people","men","women","workers","labours"];
+
+    let a = aValues[random(0, aValues.length-1)];
+    let b = bValues[random(0, bValues.length-1)];
+    let c = cValues[random(0, cValues.length-1)];
+    let d = dValues[random(0, dValues.length-1)];
+
+    let ans = (b * c) / a;
+
+    return createQuestion(
+        `If ${b} ${d} complete a work in ${c} days, then ${a} ${d} complete the same work in how many days?`,
+        ans,
+`Q: If ${b} ${d} complete a work in ${c} days, then ${a} ${d} complete the same work in how many days?
+
+Since work is constant:
+
+⇒ ${b} × ${c} = ${a} × Required days
+
+⇒ Required days = (${b}/${a}) × ${c}
+⇒ Required days = ${b} × ${c} / ${a}
+⇒ Required days = ${ans} days`);
+},
+function(){
+    let aValues = [100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000];
+    let bValues = [10,20,30,40,50,60,70,80,90];
+
+    let a = aValues[random(0, aValues.length-1)];
+    let b = bValues[random(0, bValues.length-1)];
+
+    let decrease = (a * b) / 100;
+    let ans = a - decrease;
+
+    return createQuestion(
+        `A number is ${a}, if ${b}% got decreased then the new number is :`,
+        ans,
+`Q: A number is ${a}, if ${b}% got decreased then the new number is :
+= ${b}% of ${a}
+= (${b}×${a})/100
+= ${decrease}
+
+New number = ${a} − ${decrease}
+= ${ans}`);
+},
+function(){
+
+    // generate random even number between 100-500
+    let a = random(50,250) * 2;  
+
+    // generate random even number between 501-999
+    let b = random(251,499) * 2;
+
+    // ensure a < b
+    if(a > b){
+        let temp = a;
+        a = b;
+        b = temp;
+    }
+
+    let ans = ((b - a) / 2) + 1;
+
+    return createQuestion(
+        `How many even numbers are between ${a} and ${b}?`,
+        ans,
+`Q: How many even numbers are between ${a} and ${b}?
+
+
+= (${b} - ${a}) / 2 + 1
+= ${b - a} / 2 + 1
+= ${(b - a)/2} + 1
+= ${ans}`);
+},
+function(){
+
+    // generate random odd number between 100-500
+    let a = random(50,250) * 2 + 1;
+
+    // generate random odd number between 501-999
+    let b = random(250,499) * 2 + 1;
+
+    // ensure a < b
+    if(a > b){
+        let temp = a;
+        a = b;
+        b = temp;
+    }
+
+    let ans = ((b - a) / 2) + 1;
+
+    return createQuestion(
+        `How many odd numbers are between ${a} and ${b}?`,
+        ans,
+`Q: How many odd numbers are between ${a} and ${b}?
+
+
+= (${b} - ${a}) / 2 + 1
+= ${b - a} / 2 + 1
+= ${(b - a)/2} + 1
+= ${ans}`);
+},
+function(){
+
+    let a = random(1,9);
+    let b = random(1,9);
+    let c = random(5,9);
+    let d = random(1,6);
+
+    let power = b + c - d;
+
+    // superscript converter
+    function toSuper(num){
+        const superMap = {
+            "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴",
+            "5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹",
+            "-":"⁻"
+        };
+        return num.toString().split("").map(x => superMap[x]).join("");
+    }
+
+    let unknownPower = "ˣ"; // superscript x symbol
+
+    return createQuestion(
+        `${a}${toSuper(b)} × ${a}${toSuper(c)} ÷ ${a}${toSuper(d)} = ${a}${unknownPower}`,
+        power,
+`Q: ${a}${toSuper(b)} × ${a}${toSuper(c)} ÷ ${a}${toSuper(d)} = ${a}${unknownPower}
+
+Using exponent law:
+
+= ${a}${toSuper(b)} × ${a}${toSuper(c)} ÷ ${a}${toSuper(d)}
+= ${a}(${b}+${c}-${d})
+= ${a}(${b+c}-${d})
+= ${a}${toSuper(power)}
+
+Answer is ${power}`);
+},
+function(){
+
+    let aValues = [2,3,6];
+    let a = aValues[random(0, aValues.length-1)];
+
+    let b = random(20,60);
+
+    // generate c as multiple of 6 between 200-600
+    let c = random(34,100) * 6;   // 34*6=204 ... 100*6=600
+
+    let ans = (c * b) / a;
+
+    return createQuestion(
+        `(${a} × ?) / ${b} = ${c}`,
+        ans,
+`Q: (${a} × ?) / ${b} = ${c}
+
+⇒ (${a} × ?) = ${c} × ${b}
+⇒ ${a} × ? = ${c*b}
+⇒ ? = ${c*b} / ${a}
+⇒ ? = ${ans}`);
+}
+
+];
+
+/* -------- Engine -------- */
+
+function createQuestion(question,answer,explanation){
+    let options=[answer];
+
+    while(options.length<4){
+        let fake=answer+random(-15,15);
+        if(fake!==answer && !options.includes(fake)){
+            options.push(fake);
+        }
+    }
+
+    options.sort(()=>Math.random()-0.5);
+    return {question,answer,options,explanation,answered:false};
+}
+
+function getNewQuestion(){
+    if(usedCases.length===cases.length) usedCases=[];
+    let available=cases.map((_,i)=>i).filter(i=>!usedCases.includes(i));
+    let index=available[random(0,available.length-1)];
+    usedCases.push(index);
+    return cases[index]();
+}
+
+function loadQuestion(q){
+    document.getElementById("qNumber").innerText="Question "+(currentIndex+1);
+    document.getElementById("question").innerHTML=formatSuperscript(q.question);
+
+    let optDiv=document.getElementById("options");
+    optDiv.innerHTML="";
+    document.getElementById("explanation").style.display="none";
+
+    q.options.forEach(opt=>{
+        let btn=document.createElement("button");
+        btn.className="option";
+        btn.innerText=opt;
+
+        btn.onclick=function(){
+            if(q.answered) return;
+            q.answered=true;
+            clearInterval(timerInterval);
+
+            if(opt===q.answer){
+                btn.classList.add("correct");
+                correctCount++;
+                document.getElementById("correct").innerText=correctCount;
+            }else{
+                btn.classList.add("wrong");
+                wrongCount++;
+                document.getElementById("wrong").innerText=wrongCount;
+            }
+
+            showCorrectAnswer();
+            document.getElementById("explanation").innerHTML=formatSuperscript(q.explanation);
+            document.getElementById("explanation").style.display="block";
+            disableOptions();
+        }
+
+        optDiv.appendChild(btn);
+    });
+
+    startTimer();
+}
+
+function showCorrectAnswer(){
+    document.querySelectorAll(".option").forEach(b=>{
+        if(Number(b.innerText)===history[currentIndex].answer){
+            b.classList.add("correct");
+        }
+    });
+}
+
+function disableOptions(){
+    document.querySelectorAll(".option").forEach(b=>b.disabled=true);
+}
+
+function nextQuestion(){
+    if(currentIndex<history.length-1){
+        currentIndex++;
+        loadQuestion(history[currentIndex]);
+    }else{
+        let q=getNewQuestion();
+        history.push(q);
+        currentIndex++;
+        loadQuestion(q);
+    }
+}
+
+function previousQuestion(){
+    if(currentIndex>0){
+        currentIndex--;
+        loadQuestion(history[currentIndex]);
+    }
+}
+
+nextQuestion();
+
+
+
+
+
+
+/* -------- Finger Writing Notepad -------- */
+
+const canvas = document.getElementById("drawCanvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas(){
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    clearCanvas();
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+let drawing=false;
+
+function startDraw(e){
+    drawing=true;
+    draw(e);
+}
+
+function endDraw(){
+    drawing=false;
+    ctx.beginPath();
+}
+
+function draw(e){
+    if(!drawing) return;
+
+    e.preventDefault();
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#00BFFF"; // glowing blue
+    ctx.shadowColor = "#00BFFF";
+    ctx.shadowBlur = 8;
+
+    ctx.lineTo(x,y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+}
+
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mouseup", endDraw);
+canvas.addEventListener("mousemove", draw);
+
+canvas.addEventListener("touchstart", startDraw);
+canvas.addEventListener("touchend", endDraw);
+canvas.addEventListener("touchmove", draw);
+
+function clearCanvas(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+/* -------- Auto Clear on Next -------- */
+
+const originalNext = nextQuestion;
+
+nextQuestion = function(){
+    clearCanvas();
+    originalNext();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+    
+</script>
+</body>
+</html>
